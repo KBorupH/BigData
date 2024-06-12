@@ -1,25 +1,20 @@
 ﻿using HtmlAgilityPack;
-using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Support.UI;
+using OpenQA.Selenium;
 using RestSharp;
-using System.Diagnostics;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using WebScrapper.WebScrappers;
 
 namespace WebScrapper
 {
-    internal class Program
+    internal class ScrapperTest
     {
-        static void Main(string[] args)
-        {
-            ScrapperTest test = new ScrapperTest();
-            int t = test.Start().Result;
-            int r = Start().Result;
-            Console.WriteLine(r);
-        }
-
-
-        static async Task<int> Start()
+        public async Task<int> Start()
         {
             try
             {
