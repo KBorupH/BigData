@@ -60,41 +60,34 @@ namespace WebScrapper
                     if (!relevantUserAgent) robot.Allowed = false;
                     relevantUserAgent = false;
                 }
-
-
-                if (relevantUserAgent)
+                else if (relevantUserAgent)
                 {
                     if (line.StartsWith("Disallow:"))
                     {
                         robot.DisallowedPages.Add(line.Remove(0, "Disallow:".Length).Trim());
                         if (line.Equals("Disallow: /")) robot.Allowed = false;
                     }
-
-                    if (line.StartsWith("Allow:"))
+                    else if (line.StartsWith("Allow:"))
                     {
                         robot.AllowedMode = true;
                         robot.AllowedPages.Add(line.Remove(0, "Allow:".Length).Trim());
                     }
-
-                    if (line.StartsWith("Sitemap:"))
+                    else if (line.StartsWith("Sitemap:"))
                     {
                         robot.Sitemaps.Add(line.Remove(0, "Sitemap:".Length).Trim());
                     }
-
-                    if (line.StartsWith("Crawl-delay:"))
+                    else if (line.StartsWith("Crawl-delay:"))
                     {
                         robot.CrawlDelay = int.Parse(line.Remove(0, "Crawl-delay:".Length).Trim());
                     }
-
-                    if (line.StartsWith("Visit-time:")) // EX: 1200-1430
+                    else if (line.StartsWith("Visit-time:")) // EX: 1200-1430
                     {
                         robot.VisitTimeSet = true;
                         var times = line.Remove(0, "Visit-time:".Length).Trim().Split('-');
                         robot.StartVisitTime = DateTime.Parse(times[0]);
                         robot.EndVisitTime = DateTime.Parse(times[1]);
                     }
-
-                    if (line.StartsWith("Request-rate:")) // 1/5
+                    else if (line.StartsWith("Request-rate:")) // 1/5
                     {
                         robot.RequestRateSet = true;
                         var xy = line.Remove(0, "Request-rate:".Length).Trim().Split('/');

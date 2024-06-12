@@ -1,4 +1,7 @@
 ﻿using HtmlAgilityPack;
+using OpenQA.Selenium;
+using OpenQA.Selenium.Chrome;
+using OpenQA.Selenium.Support.UI;
 using RestSharp;
 using System.Diagnostics;
 using WebScrapper.WebScrappers;
@@ -9,38 +12,76 @@ namespace WebScrapper
     {
         static void Main(string[] args)
         {
-            Start();
+            int r = Start().Result;
+            Console.WriteLine(r);
         }
 
 
-        static async void Start()
+        static async Task<int> Start()
         {
-            RestSharpClient restClient = new RestSharpClient();
-            StaticWebScrapper staticScraper = new StaticWebScrapper();
-
-            string xPath = "//p";
-
-            string url = "https://dmi.dk";
-
-            RestClient client = restClient.GetRestSharpClient(url);
-            RestRequest requestType = restClient.SetRequestType();
-            RestResponse response = restClient.ExecuteRequest(client, requestType);
-
-            if (true /* response.IsSuccessful */) // For some reason response.IsSuccesful fails, even when content is present
+            try
             {
-                RobotReader robot = await RobotReader.ReadRobotTxt(url);
+                RestSharpClient restClient = new RestSharpClient();
+                StaticWebScrapper staticScraper = new StaticWebScrapper();
 
-                HtmlDocument doc = staticScraper.GetHtmlDocument(response);
-                HtmlNodeCollection nodes = staticScraper.SelectDocumentNodes(doc, xPath);
+                string baseUrl = "https://www.dmi.dk/";
+                string xPath = "//p";
 
-                foreach (HtmlNode node in nodes)
+                RobotReader robot = await RobotReader.ReadRobotTxt(baseUrl);
+
+                Scrapper scrapper = new Scrapper();
+
+                foreach (var disallowed in robot.DisallowedPages)
                 {
-                    Console.WriteLine(node.InnerText);
+                    var testc = "document.query .innertext != ";
                 }
+
+                var chromeOptions = new ChromeOptions();
+
+                chromeOptions.AddArgument("headless");
+
+                using (var driver = new ChromeDriver(chromeOptions))
+                {
+                    driver.Navigate().GoToUrl(baseUrl);
+
+                    WebDriverWait wait = new WebDriverWait(driver, TimeSpan.FromSeconds(15));
+
+                    wait.Until(d => ((IJavaScriptExecutor)driver).ExecuteScript("return document.readyState").Equals("complete")); // Fix this
+
+                    IWebElement temp = driver.FindElement(By.CssSelector("#weather-news-block"));
+
+                    foreach (IWebElement item in temp.FindElements(By.TagName("p")))
+                    {
+                        Console.WriteLine(item.Text);
+                    }
+                }
+
+                RestClient client = restClient.GetRestSharpClient(baseUrl);
+                RestRequest requestType = restClient.SetRequestType();
+                RestResponse response = restClient.ExecuteRequest(client, requestType);
+
+                if (true /* response.IsSuccessful */) // For some reason response.IsSuccesful fails, even when content is present
+                {
+                    HtmlDocument doc = staticScraper.GetHtmlDocument(response);
+                    HtmlNodeCollection nodes = staticScraper.SelectDocumentNodes(doc, xPath);
+                    //HtmlNode nodes = staticScraper.SelectSingleNode(doc, xPath);
+
+                    //foreach (HtmlNode node in nodes.ChildNodes)
+                    //{
+                    //    Console.WriteLine(node.InnerText);
+                    //}
+
+                    foreach (HtmlNode node in nodes)
+                    {
+                        Console.WriteLine(node.InnerText);
+                    }
+                }
+
+                return 0;
             }
-            else
+            catch (Exception)
             {
-                Console.WriteLine("Response not succesful");
+                return 1;
             }
         }
     }
