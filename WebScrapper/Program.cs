@@ -11,7 +11,7 @@ namespace WebScrapper
             RestSharpClient restClient = new RestSharpClient();
             StaticWebScrapper staticScraper = new StaticWebScrapper();
 
-            string xPath = "//li";
+            string xPath = "//div[@class='weather-news-block']";
 
             RestClient client = restClient.GetRestSharpClient("https://dmi.dk");
             RestRequest requestType = restClient.SetRequestType();
