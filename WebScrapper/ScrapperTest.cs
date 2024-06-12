@@ -30,7 +30,9 @@ namespace WebScrapper
 
                 foreach (var disallowed in robot.DisallowedPages)
                 {
-                    var testc = "document.query .innertext != ";
+                    var test1 = "google.com/*/test";
+
+                    var testc = "google.com/*/test/*/this";
                 }
 
                 var chromeOptions = new ChromeOptions();
@@ -43,11 +45,12 @@ namespace WebScrapper
 
                     WebDriverWait wait = new WebDriverWait(driver, TimeSpan.FromSeconds(15));
 
-                    wait.Until(d => ((IJavaScriptExecutor)driver).ExecuteScript("return document.readyState").Equals("complete")); // Fix this
+                    //wait.Until(d => ((IJavaScriptExecutor)driver).ExecuteScript("return document.querySelector(\"div#c22116 > div > div > div > p\").textContent.trim() != \"\"")); // Fix this
+                    wait.Until(d => ((IJavaScriptExecutor)driver).ExecuteScript("return (document.querySelector(\"div#c22116 > div > div > div > p\").Displayed)")); // Fix this
 
                     IWebElement temp = driver.FindElement(By.CssSelector("#weather-news-block"));
 
-                    foreach (IWebElement item in temp.FindElements(By.TagName("p")))
+                    foreach (WebElement item in temp.FindElements(By.TagName("p")))
                     {
                         Console.WriteLine(item.Text);
                     }
