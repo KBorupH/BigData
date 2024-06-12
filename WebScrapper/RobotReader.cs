@@ -29,16 +29,13 @@ namespace WebScrapper
 
         public List<string> Sitemaps = new List<string>();
 
-        public RobotReader(string url)
+        public static async Task<RobotReader> ReadRobotTxt(string url)
         {
-            ReadRobotTxt(url);
-        }
+            RobotReader robot = new RobotReader();
 
-        private async void ReadRobotTxt(string url)
-        {
-            url = Path.Combine(url, "robot.txt");
+            Uri robotUri = new Uri(new Uri(url), "robots.txt");
 
-            string contentOfRobotTxt = await new HttpClient().GetStringAsync(url);
+            string contentOfRobotTxt = await new HttpClient().GetStringAsync(robotUri);
 
             bool relevantUserAgent = false;
 
@@ -49,7 +46,7 @@ namespace WebScrapper
                 if (line.Equals("User-agent: *"))
                 {
                     relevantUserAgent = true;
-                    Allowed = true;
+                    robot.Allowed = true;
                     lastUserAgentLine = index;
                 }
                 else if (line.StartsWith("User-agent:"))
@@ -60,7 +57,7 @@ namespace WebScrapper
                         continue; 
                     }
 
-                    if (!relevantUserAgent) Allowed = false;
+                    if (!relevantUserAgent) robot.Allowed = false;
                     relevantUserAgent = false;
                 }
 
@@ -69,50 +66,52 @@ namespace WebScrapper
                 {
                     if (line.StartsWith("Disallow:"))
                     {
-                        DisallowedPages.Add(line.Remove(0, "Disallow:".Length).Trim());
-                        if (line.Equals("Disallow: /")) Allowed = false;
+                        robot.DisallowedPages.Add(line.Remove(0, "Disallow:".Length).Trim());
+                        if (line.Equals("Disallow: /")) robot.Allowed = false;
                     }
 
                     if (line.StartsWith("Allow:"))
                     {
-                        AllowedMode = true;
-                        AllowedPages.Add(line.Remove(0, "Allow:".Length).Trim());
+                        robot.AllowedMode = true;
+                        robot.AllowedPages.Add(line.Remove(0, "Allow:".Length).Trim());
                     }
 
                     if (line.StartsWith("Sitemap:"))
                     {
-                        Sitemaps.Add(line.Remove(0, "Sitemap:".Length).Trim());
+                        robot.Sitemaps.Add(line.Remove(0, "Sitemap:".Length).Trim());
                     }
 
                     if (line.StartsWith("Crawl-delay:"))
                     {
-                        CrawlDelay = int.Parse(line.Remove(0, "Crawl-delay:".Length).Trim());
+                        robot.CrawlDelay = int.Parse(line.Remove(0, "Crawl-delay:".Length).Trim());
                     }
 
-                    if (line.StartsWith("Visit-time:"))
+                    if (line.StartsWith("Visit-time:")) // EX: 1200-1430
                     {
-                        VisitTimeSet = true;
+                        robot.VisitTimeSet = true;
                         var times = line.Remove(0, "Visit-time:".Length).Trim().Split('-');
-                        StartVisitTime = DateTime.Parse(times[0]);
-                        EndVisitTime = DateTime.Parse(times[1]);
+                        robot.StartVisitTime = DateTime.Parse(times[0]);
+                        robot.EndVisitTime = DateTime.Parse(times[1]);
                     }
 
-                    if (line.StartsWith("Request-rate:"))
+                    if (line.StartsWith("Request-rate:")) // 1/5
                     {
-                        RequestRateSet = true;
+                        robot.RequestRateSet = true;
                         var xy = line.Remove(0, "Request-rate:".Length).Trim().Split('/');
-                        RequestRate = int.Parse(xy[0]);
-                        RequestInterval = int.Parse(xy[1]);
+                        robot.RequestRate = int.Parse(xy[0]);
+                        robot.RequestInterval = int.Parse(xy[1]);
                     }
                 }
 
                 index++;
             }
 
-            if (AllowedPages.Count > 0 && !Allowed) 
+            if (robot.AllowedPages.Count > 0 && !robot.Allowed) 
             {
-                Allowed = true;
+                robot.Allowed = true;
             }
+
+            return robot;
         }
     }
 }
