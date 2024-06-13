@@ -29,7 +29,7 @@ namespace WebScrapper
                 string baseUrl = "https://www.scrapingcourse.com/ecommerce/";
                 string xPath = "//bdi";
 
-                RobotReader robot = await RobotReader.ReadRobotTxt(baseUrl);
+                RobotReader robot = await RobotReader.ReadRobotTxt(new Uri(baseUrl));
 
                 Scrapper scrapper = new Scrapper();
 
