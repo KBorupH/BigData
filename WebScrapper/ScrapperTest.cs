@@ -21,18 +21,30 @@ namespace WebScrapper
                 RestSharpClient restClient = new RestSharpClient();
                 StaticWebScrapper staticScraper = new StaticWebScrapper();
 
-                string baseUrl = "https://www.dmi.dk/";
+                Uri baseUrl = new Uri("https://www.dmi.dk/");
                 string xPath = "//p";
 
                 RobotReader robot = await RobotReader.ReadRobotTxt(baseUrl);
 
+                if (!robot.Allowed) return 0;
+
                 Scrapper scrapper = new Scrapper();
 
-                foreach (var disallowed in robot.DisallowedPages)
-                {
-                    var test1 = "google.com/*/test";
+                scrapper.PagesToScrape.Enqueue(baseUrl);
 
-                    var testc = "google.com/*/test/*/this";
+                if (robot.AllowedMode)
+                {
+                    foreach (var allowed in robot.AllowedPages)
+                    {
+                        scrapper.AllowedPages.Add(new Uri(baseUrl, allowed));
+                    }
+                }
+                else
+                {
+                    foreach (var disallowed in robot.DisallowedPages)
+                    {
+                        scrapper.DisallowedPages.Add(new Uri(baseUrl, disallowed));
+                    }
                 }
 
                 var chromeOptions = new ChromeOptions();
@@ -41,6 +53,12 @@ namespace WebScrapper
 
                 using (var driver = new ChromeDriver(chromeOptions))
                 {
+                    int i = 0;
+                    while (scrapper.PagesToScrape.Count != 0 && i < scrapper.ScrapeLimit)
+                    {
+
+                    }
+
                     driver.Navigate().GoToUrl(baseUrl);
 
                     WebDriverWait wait = new WebDriverWait(driver, TimeSpan.FromSeconds(15));
@@ -56,7 +74,7 @@ namespace WebScrapper
                     }
                 }
 
-                RestClient client = restClient.GetRestSharpClient(baseUrl);
+                RestClient client = restClient.GetRestSharpClient(baseUrl.AbsolutePath);
                 RestRequest requestType = restClient.SetRequestType();
                 RestResponse response = restClient.ExecuteRequest(client, requestType);
 
