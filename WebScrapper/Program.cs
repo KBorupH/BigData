@@ -26,8 +26,8 @@ namespace WebScrapper
                 RestSharpClient restClient = new RestSharpClient();
                 StaticWebScrapper staticScraper = new StaticWebScrapper();
 
-                string baseUrl = "https://www.dmi.dk/";
-                string xPath = "//p";
+                string baseUrl = "https://www.scrapingcourse.com/ecommerce/";
+                string xPath = "//bdi";
 
                 RobotReader robot = await RobotReader.ReadRobotTxt(baseUrl);
 
@@ -46,9 +46,9 @@ namespace WebScrapper
                 {
                     driver.Navigate().GoToUrl(baseUrl);
 
-                    WebDriverWait wait = new WebDriverWait(driver, TimeSpan.FromSeconds(15));
+                    WebDriverWait wait = new WebDriverWait(driver, TimeSpan.FromSeconds(5));
 
-                    wait.Until(d => ((IJavaScriptExecutor)driver).ExecuteScript("return document.readyState").Equals("complete")); // Fix this
+                    //wait.Until(d => ((IJavaScriptExecutor)driver).ExecuteScript("return document.readyState").Equals("complete")); // Fix this
 
                     IWebElement temp = driver.FindElement(By.CssSelector("#weather-news-block"));
 
