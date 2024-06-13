@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace WebScrapper
@@ -35,27 +36,37 @@ namespace WebScrapper
             RobotReader robot = new RobotReader();
 
             Uri robotUri = new Uri(url, "robots.txt");
+            string contentOfRobotTxt = "";
+            try
+            {
 
-            string contentOfRobotTxt = await new HttpClient().GetStringAsync(robotUri);
+                contentOfRobotTxt = await new HttpClient().GetStringAsync(robotUri.AbsoluteUri);
+            }
+            catch (Exception e)
+            {
+                ;
+            }
 
             bool relevantUserAgent = false;
 
             int lastUserAgentLine = 0;
             int index = 0;
-            foreach (var line in contentOfRobotTxt.Split('\n'))
+            foreach (string line in contentOfRobotTxt.Split('\n'))
             {
-                if (line.Equals("User-agent: *"))
+                string cleanedLine = Regex.Replace(line, @"\t|\n|\r", "");
+
+                if (cleanedLine.StartsWith("User-agent: *"))
                 {
                     relevantUserAgent = true;
                     robot.Allowed = true;
                     lastUserAgentLine = index;
                 }
-                else if (line.StartsWith("User-agent:"))
+                else if (cleanedLine.StartsWith("User-agent:"))
                 {
-                    if (index - 1 ==  lastUserAgentLine) 
+                    if (index - 1 == lastUserAgentLine)
                     {
                         lastUserAgentLine = index;
-                        continue; 
+                        continue;
                     }
 
                     if (!relevantUserAgent) robot.Allowed = false;
@@ -63,44 +74,45 @@ namespace WebScrapper
                 }
                 else if (relevantUserAgent)
                 {
-                    if (line.StartsWith("Disallow:"))
+                    if (cleanedLine.StartsWith("Disallow:"))
                     {
-                        robot.DisallowedPages.Add(line.Remove(0, "Disallow:".Length).Trim());
-                        if (line.Equals("Disallow: /")) robot.Allowed = false;
+                        robot.DisallowedPages.Add(cleanedLine.Remove(0, "Disallow:".Length).Trim());
+                        if (cleanedLine.Equals("Disallow: /")) robot.Allowed = false;
                     }
-                    else if (line.StartsWith("Allow:"))
+                    else if (cleanedLine.StartsWith("Allow:"))
                     {
                         robot.AllowedMode = true;
-                        robot.AllowedPages.Add(line.Remove(0, "Allow:".Length).Trim());
+                        robot.AllowedPages.Add(cleanedLine.Remove(0, "Allow:".Length).Trim());
                     }
-                    else if (line.StartsWith("Sitemap:"))
+                    else if (cleanedLine.StartsWith("Crawl-delay:"))
                     {
-                        robot.Sitemaps.Add(line.Remove(0, "Sitemap:".Length).Trim());
+                        robot.CrawlDelay = int.Parse(cleanedLine.Remove(0, "Crawl-delay:".Length).Trim());
                     }
-                    else if (line.StartsWith("Crawl-delay:"))
-                    {
-                        robot.CrawlDelay = int.Parse(line.Remove(0, "Crawl-delay:".Length).Trim());
-                    }
-                    else if (line.StartsWith("Visit-time:")) // EX: 1200-1430
+                    else if (cleanedLine.StartsWith("Visit-time:")) // EX: 1200-1430
                     {
                         robot.VisitTimeSet = true;
-                        string[] times = line.Remove(0, "Visit-time:".Length).Trim().Split('-');
+                        string[] times = cleanedLine.Remove(0, "Visit-time:".Length).Trim().Split('-');
                         robot.StartVisitTime = DateTime.ParseExact(times[0], "HHmm", CultureInfo.InvariantCulture);
                         robot.EndVisitTime = DateTime.ParseExact(times[1], "HHmm", CultureInfo.InvariantCulture);
                     }
-                    else if (line.StartsWith("Request-rate:")) // 1/5
+                    else if (cleanedLine.StartsWith("Request-rate:")) // 1/5
                     {
                         robot.RequestRateSet = true;
-                        string[] xy = line.Remove(0, "Request-rate:".Length).Trim().Split('/');
+                        string[] xy = cleanedLine.Remove(0, "Request-rate:".Length).Trim().Split('/');
                         robot.RequestRate = int.Parse(xy[0]);
                         robot.RequestInterval = int.Parse(xy[1]);
                     }
                 }
 
+                if (cleanedLine.StartsWith("Sitemap:"))
+                {
+                    robot.Sitemaps.Add(cleanedLine.Remove(0, "Sitemap:".Length).Trim());
+                }
+
                 index++;
             }
 
-            if (robot.AllowedPages.Count > 0 && !robot.Allowed) 
+            if (robot.AllowedPages.Count > 0 && !robot.Allowed)
             {
                 robot.Allowed = true;
             }

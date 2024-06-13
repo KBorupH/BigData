@@ -9,6 +9,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using WebScrapper.WebScrappers;
+using System.Data.SqlTypes;
+using System.Xml;
 
 namespace WebScrapper
 {
@@ -18,11 +20,7 @@ namespace WebScrapper
         {
             try
             {
-                RestSharpClient restClient = new RestSharpClient();
-                StaticWebScrapper staticScraper = new StaticWebScrapper();
-
-                Uri baseUrl = new Uri("https://www.dmi.dk/");
-                string xPath = "//p";
+                Uri baseUrl = new Uri("https://befound.pt/");
 
                 RobotReader robot = await RobotReader.ReadRobotTxt(baseUrl);
 
@@ -45,6 +43,18 @@ namespace WebScrapper
                     {
                         scrapper.DisallowedPages.Add(new Uri(baseUrl, disallowed));
                     }
+                }
+
+                foreach (string sitemap in robot.Sitemaps)
+                {
+                    XmlTextReader reader = new XmlTextReader(new Uri(baseUrl, sitemap).AbsoluteUri);
+
+                    while (reader.Read())
+                    {
+                        // Do some work here on the data.
+                        Console.WriteLine(reader.Name);
+                    }
+                    Console.ReadLine();
                 }
 
                 var chromeOptions = new ChromeOptions();
@@ -74,30 +84,9 @@ namespace WebScrapper
                     }
                 }
 
-                RestClient client = restClient.GetRestSharpClient(baseUrl.AbsolutePath);
-                RestRequest requestType = restClient.SetRequestType();
-                RestResponse response = restClient.ExecuteRequest(client, requestType);
-
-                if (true /* response.IsSuccessful */) // For some reason response.IsSuccesful fails, even when content is present
-                {
-                    HtmlDocument doc = staticScraper.GetHtmlDocument(response);
-                    HtmlNodeCollection nodes = staticScraper.SelectDocumentNodes(doc, xPath);
-                    //HtmlNode nodes = staticScraper.SelectSingleNode(doc, xPath);
-
-                    //foreach (HtmlNode node in nodes.ChildNodes)
-                    //{
-                    //    Console.WriteLine(node.InnerText);
-                    //}
-
-                    foreach (HtmlNode node in nodes)
-                    {
-                        Console.WriteLine(node.InnerText);
-                    }
-                }
-
                 return 0;
             }
-            catch (Exception)
+            catch (Exception e)
             {
                 return 1;
             }
