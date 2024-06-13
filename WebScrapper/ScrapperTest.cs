@@ -21,16 +21,30 @@ namespace WebScrapper
                 RestSharpClient restClient = new RestSharpClient();
                 StaticWebScrapper staticScraper = new StaticWebScrapper();
 
-                string baseUrl = "https://www.dmi.dk/";
+                Uri baseUrl = new Uri("https://www.dmi.dk/");
                 string xPath = "//p";
 
                 RobotReader robot = await RobotReader.ReadRobotTxt(baseUrl);
 
+                if (!robot.Allowed) return 0;
+
                 Scrapper scrapper = new Scrapper();
 
-                foreach (var disallowed in robot.DisallowedPages)
+                scrapper.PagesToScrape.Enqueue(baseUrl);
+
+                if (robot.AllowedMode)
                 {
-                    var testc = "document.query .innertext != ";
+                    foreach (var allowed in robot.AllowedPages)
+                    {
+                        scrapper.AllowedPages.Add(new Uri(baseUrl, allowed));
+                    }
+                }
+                else
+                {
+                    foreach (var disallowed in robot.DisallowedPages)
+                    {
+                        scrapper.DisallowedPages.Add(new Uri(baseUrl, disallowed));
+                    }
                 }
 
                 var chromeOptions = new ChromeOptions();
@@ -39,21 +53,28 @@ namespace WebScrapper
 
                 using (var driver = new ChromeDriver(chromeOptions))
                 {
+                    int i = 0;
+                    while (scrapper.PagesToScrape.Count != 0 && i < scrapper.ScrapeLimit)
+                    {
+
+                    }
+
                     driver.Navigate().GoToUrl(baseUrl);
 
                     WebDriverWait wait = new WebDriverWait(driver, TimeSpan.FromSeconds(15));
 
-                    wait.Until(d => ((IJavaScriptExecutor)driver).ExecuteScript("return document.readyState").Equals("complete")); // Fix this
+                    //wait.Until(d => ((IJavaScriptExecutor)driver).ExecuteScript("return document.querySelector(\"div#c22116 > div > div > div > p\").textContent.trim() != \"\"")); // Fix this
+                    wait.Until(d => ((IJavaScriptExecutor)driver).ExecuteScript("return (document.querySelector(\"div#c22116 > div > div > div > p\").Displayed)")); // Fix this
 
                     IWebElement temp = driver.FindElement(By.CssSelector("#weather-news-block"));
 
-                    foreach (IWebElement item in temp.FindElements(By.TagName("p")))
+                    foreach (WebElement item in temp.FindElements(By.TagName("p")))
                     {
                         Console.WriteLine(item.Text);
                     }
                 }
 
-                RestClient client = restClient.GetRestSharpClient(baseUrl);
+                RestClient client = restClient.GetRestSharpClient(baseUrl.AbsolutePath);
                 RestRequest requestType = restClient.SetRequestType();
                 RestResponse response = restClient.ExecuteRequest(client, requestType);
 

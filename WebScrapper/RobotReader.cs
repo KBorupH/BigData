@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Runtime.CompilerServices;
@@ -29,11 +30,11 @@ namespace WebScrapper
 
         public List<string> Sitemaps = new List<string>();
 
-        public static async Task<RobotReader> ReadRobotTxt(string url)
+        public static async Task<RobotReader> ReadRobotTxt(Uri url)
         {
             RobotReader robot = new RobotReader();
 
-            Uri robotUri = new Uri(new Uri(url), "robots.txt");
+            Uri robotUri = new Uri(url, "robots.txt");
 
             string contentOfRobotTxt = await new HttpClient().GetStringAsync(robotUri);
 
@@ -83,14 +84,14 @@ namespace WebScrapper
                     else if (line.StartsWith("Visit-time:")) // EX: 1200-1430
                     {
                         robot.VisitTimeSet = true;
-                        var times = line.Remove(0, "Visit-time:".Length).Trim().Split('-');
-                        robot.StartVisitTime = DateTime.Parse(times[0]);
-                        robot.EndVisitTime = DateTime.Parse(times[1]);
+                        string[] times = line.Remove(0, "Visit-time:".Length).Trim().Split('-');
+                        robot.StartVisitTime = DateTime.ParseExact(times[0], "HHmm", CultureInfo.InvariantCulture);
+                        robot.EndVisitTime = DateTime.ParseExact(times[1], "HHmm", CultureInfo.InvariantCulture);
                     }
                     else if (line.StartsWith("Request-rate:")) // 1/5
                     {
                         robot.RequestRateSet = true;
-                        var xy = line.Remove(0, "Request-rate:".Length).Trim().Split('/');
+                        string[] xy = line.Remove(0, "Request-rate:".Length).Trim().Split('/');
                         robot.RequestRate = int.Parse(xy[0]);
                         robot.RequestInterval = int.Parse(xy[1]);
                     }
