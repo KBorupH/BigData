@@ -11,6 +11,8 @@ using System.Threading.Tasks;
 using WebScrapper.WebScrappers;
 using System.Data.SqlTypes;
 using System.Xml;
+using System.Collections;
+using System.Text.RegularExpressions;
 
 namespace WebScrapper
 {
@@ -26,9 +28,36 @@ namespace WebScrapper
 
                 if (!robot.Allowed) return 0;
 
+                if (robot.VisitTimeSet && robot.StartVisitTime < DateTime.Now.TimeOfDay && DateTime.Now.TimeOfDay < robot.EndVisitTime) return 0;
+
                 Scrapper scrapper = new Scrapper();
 
                 scrapper.PagesToScrape.Enqueue(baseUrl);
+
+                for (int i = 0; i < robot.Sitemaps.Count; i++)
+                {
+                    string sitemap = robot.Sitemaps[i];
+
+                    XmlTextReader reader = new XmlTextReader(new Uri(baseUrl, sitemap).AbsoluteUri);
+
+                    while (reader.Read())
+                    {
+                        if (reader.Name.ToLower() == "loc")
+                        {
+                            reader.Read();
+                            Uri urlFound = new Uri(reader.Value);
+                            if (urlFound.AbsolutePath.ToLower().Contains("sitemap") && urlFound.AbsolutePath.ToLower().EndsWith(".xml"))
+                            {
+                                robot.Sitemaps.Add(urlFound.AbsoluteUri);
+                            } 
+                            else
+                            {
+                                scrapper.PagesToScrape.Enqueue(urlFound);
+                            }
+                        }
+                    }
+
+                }
 
                 if (robot.AllowedMode)
                 {
@@ -45,28 +74,50 @@ namespace WebScrapper
                     }
                 }
 
-                foreach (string sitemap in robot.Sitemaps)
-                {
-                    XmlTextReader reader = new XmlTextReader(new Uri(baseUrl, sitemap).AbsoluteUri);
-
-                    while (reader.Read())
-                    {
-                        // Do some work here on the data.
-                        Console.WriteLine(reader.Name);
-                    }
-                    Console.ReadLine();
-                }
-
                 var chromeOptions = new ChromeOptions();
 
                 chromeOptions.AddArgument("headless");
+
+                DateTime lastReadTime = DateTime.MinValue;
+                int requestRate = robot.RequestRateSet ? robot.RequestInterval / robot.RequestRate : 0;
 
                 using (var driver = new ChromeDriver(chromeOptions))
                 {
                     int i = 0;
                     while (scrapper.PagesToScrape.Count != 0 && i < scrapper.ScrapeLimit)
                     {
+                        if (robot.VisitTimeSet && robot.StartVisitTime < DateTime.Now.TimeOfDay && DateTime.Now.TimeOfDay < robot.EndVisitTime) return 0;
 
+                        int secondsPassed = 0;
+
+                        do { secondsPassed = (DateTime.Now.TimeOfDay - lastReadTime.TimeOfDay).Seconds; } 
+                        while ((robot.RequestRateSet && secondsPassed < requestRate) || (robot.CrawlDelaySet && secondsPassed < robot.CrawlDelay));
+
+                        if (scrapper.PagesToScrape.TryDequeue(out var currentUrl))
+                        {
+                            if (robot.AllowedMode)
+                            {
+                                foreach (string allowedPage in robot.AllowedPages)
+                                {
+                                    string regexString = allowedPage.Replace(".", "[.]").Replace("/", "[/]").Replace("*", "[^/]*").Replace("$", "[$]");
+                                    if (!Regex.Match(currentUrl.AbsoluteUri, regexString).Success) continue;
+                                }
+                            }
+                            else
+                            {
+                                foreach (string disallowedPage in robot.DisallowedPages)
+                                {
+                                    string regexString = disallowedPage.Replace(".", "[.]").Replace("/", "[/]").Replace("*", "[^/]*").Replace("$", "[$]");
+                                    if (Regex.Match(currentUrl.AbsoluteUri, regexString).Success) continue;
+                                }
+                            }
+
+                            driver.Navigate().GoToUrl(currentUrl);
+
+                            lastReadTime = DateTime.Now;
+
+                            scrapper.ScrapedPages.Add(currentUrl);
+                        }
                     }
 
                     driver.Navigate().GoToUrl(baseUrl);

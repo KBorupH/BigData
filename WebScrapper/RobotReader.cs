@@ -19,11 +19,12 @@ namespace WebScrapper
         public List<string> AllowedPages = new List<string>();
         public List<string> DisallowedPages = new List<string>();
 
+        public bool CrawlDelaySet = false;
         public int CrawlDelay = 0;
 
         public bool VisitTimeSet = false;
-        public DateTime StartVisitTime = DateTime.MinValue;
-        public DateTime EndVisitTime = DateTime.MaxValue;
+        public TimeSpan StartVisitTime = TimeSpan.MinValue;
+        public TimeSpan EndVisitTime = TimeSpan.MaxValue;
 
         public bool RequestRateSet = false;
         public int RequestRate = 0;
@@ -86,14 +87,15 @@ namespace WebScrapper
                     }
                     else if (cleanedLine.StartsWith("Crawl-delay:"))
                     {
+                        robot.CrawlDelaySet = true;
                         robot.CrawlDelay = int.Parse(cleanedLine.Remove(0, "Crawl-delay:".Length).Trim());
                     }
                     else if (cleanedLine.StartsWith("Visit-time:")) // EX: 1200-1430
                     {
                         robot.VisitTimeSet = true;
                         string[] times = cleanedLine.Remove(0, "Visit-time:".Length).Trim().Split('-');
-                        robot.StartVisitTime = DateTime.ParseExact(times[0], "HHmm", CultureInfo.InvariantCulture);
-                        robot.EndVisitTime = DateTime.ParseExact(times[1], "HHmm", CultureInfo.InvariantCulture);
+                        robot.StartVisitTime = TimeSpan.ParseExact(times[0], "hmm", CultureInfo.InvariantCulture);
+                        robot.EndVisitTime = TimeSpan.ParseExact(times[1], "hmm", CultureInfo.InvariantCulture);
                     }
                     else if (cleanedLine.StartsWith("Request-rate:")) // 1/5
                     {
